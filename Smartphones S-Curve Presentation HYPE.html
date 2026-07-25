@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smartphones on the S-Curve</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg0:#0A0620;
+    --bg1:#1B0E3F;
+    --pink:#FF2E9A;
+    --cyan:#00E6FF;
+    --lime:#C6FF3D;
+    --ink:#FFFFFF;
+    --dim: rgba(255,255,255,0.68);
+    --glass: rgba(255,255,255,0.06);
+    --glass-b: rgba(255,255,255,0.14);
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; height:100%; width:100%;
+    background: radial-gradient(circle at 25% 15%, var(--bg1), var(--bg0) 62%);
+    color: var(--ink);
+    font-family:'Inter', sans-serif;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  .deck{ position:relative; width:100vw; height:100vh; overflow:hidden; }
+
+  .blob{ position:fixed; border-radius:50%; filter:blur(95px); mix-blend-mode:screen; pointer-events:none; z-index:0; }
+  .blob1{ width:520px; height:520px; background:var(--pink); opacity:.5; top:-140px; left:-120px; animation: floatA 12s ease-in-out infinite; }
+  .blob2{ width:480px; height:480px; background:var(--cyan); opacity:.45; bottom:-160px; right:-100px; animation: floatB 14s ease-in-out infinite; }
+  .blob3{ width:360px; height:360px; background:var(--lime); opacity:.22; top:42%; left:58%; animation: floatC 10s ease-in-out infinite; }
+  @keyframes floatA{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(70px,50px) scale(1.18);} }
+  @keyframes floatB{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(-60px,-40px) scale(1.12);} }
+  @keyframes floatC{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(-40px,30px) scale(1.25);} }
+
+  .grain{ position:fixed; inset:0; pointer-events:none; z-index:1; opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+  .topbar{
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 26px 40px;
+  }
+  .kicker{
+    font-family:'Space Mono', monospace;
+    font-size: clamp(10px, 1.1vw, 13px);
+    letter-spacing:0.14em; text-transform:uppercase;
+    color: var(--cyan);
+    display:inline-block; opacity:0;
+  }
+  .topbar-right{ display:flex; align-items:center; gap:16px; }
+  .pageno{ font-family:'Space Mono', monospace; font-size:12px; letter-spacing:.08em; color: var(--dim); }
+  .fs-btn{
+    width:32px; height:32px; border-radius:50%;
+    border:1px solid var(--glass-b); background: var(--glass); color:var(--ink);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition: border-color .2s, transform .15s, box-shadow .2s;
+  }
+  .fs-btn:hover{ border-color: var(--cyan); box-shadow: 0 0 16px rgba(0,230,255,.35); }
+  .fs-btn:focus-visible{ outline:2px solid var(--cyan); outline-offset:2px; }
+  .fs-btn svg{ width:14px; height:14px; }
+
+  .stage{ position:relative; width:100%; height:100%; z-index:5; }
+  .slide{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding: 110px 8vw 110px 8vw;
+    opacity:0; visibility:hidden;
+    transform: scale(1.06);
+    transition: opacity .28s ease, transform .28s ease;
+  }
+  .slide.active{ opacity:1; visibility:visible; transform:scale(1); z-index:6; }
+
+  h1{
+    font-family:'Archivo Black', sans-serif;
+    text-transform:uppercase;
+    font-size: clamp(30px, 5.4vw, 68px);
+    line-height:1.04;
+    letter-spacing:-0.01em;
+    text-align:center;
+    margin: 6px 0 18px 0;
+    max-width: 17ch;
+  }
+  h1 .word{ display:inline-block; opacity:0; margin: 0 .12em; }
+  .sub{
+    font-size: clamp(14px, 1.5vw, 19px);
+    color: var(--dim);
+    max-width: 48ch; text-align:center; line-height:1.55;
+    opacity:0;
+  }
+  mark{
+    background: var(--lime); color: var(--bg0);
+    padding: 0 8px; border-radius:4px; font-weight:700;
+    box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  }
+
+  .figure-wrap{ width:min(760px, 84vw); margin-top:30px; opacity:0; }
+  .figure-wrap svg{ width:100%; height:auto; overflow:visible; }
+  .curve-path{ fill:none; stroke-width:4.5; stroke-linecap:round; }
+  .curve-path.now{ stroke: var(--pink); filter: drop-shadow(0 0 8px rgba(255,46,154,.85)); }
+  .curve-path.next{ stroke: var(--cyan); filter: drop-shadow(0 0 8px rgba(0,230,255,.85)); }
+  .axis{ stroke: rgba(255,255,255,0.14); stroke-width:1.5; }
+
+  .stage-dot{ fill: var(--bg0); stroke-width:3.5; filter: drop-shadow(0 0 6px rgba(255,46,154,.8)); }
+  .stage-dot.now{ stroke: var(--pink); }
+  .stage-label{
+    font-family:'Space Mono', monospace; font-size:12.5px;
+    fill: var(--ink); text-anchor:middle; text-transform:uppercase; letter-spacing:.06em; font-weight:700;
+  }
+  .pin{ fill: var(--bg0); stroke-width:3.5; }
+  .pin-label{ font-family:'Space Mono', monospace; font-size:13px; fill: var(--ink); font-weight:700; letter-spacing:.03em; }
+
+  .cards{ display:flex; gap:28px; margin-top:36px; flex-wrap:wrap; justify-content:center; }
+  .card{
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: 14px;
+    padding: 26px 26px;
+    width: 210px; text-align:left;
+    backdrop-filter: blur(6px);
+    opacity:0; transform: translateY(18px) scale(.92);
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+  }
+  .card .stat{
+    font-family:'Archivo Black', sans-serif;
+    font-size: clamp(26px, 2.8vw, 34px);
+    line-height:1;
+    margin-bottom:12px;
+    background: linear-gradient(90deg, var(--pink), var(--cyan));
+    -webkit-background-clip: text; background-clip:text; color:transparent;
+  }
+  .card .label{
+    font-family:'Space Mono', monospace; font-size:12px; color: var(--dim);
+    line-height:1.5; text-transform:uppercase; letter-spacing:.03em;
+  }
+
+  .replaced-row{ display:flex; gap:40px; margin-top:38px; align-items:flex-end; flex-wrap:wrap; justify-content:center; }
+  .relic{ display:flex; flex-direction:column; align-items:center; gap:14px; width:150px; opacity:0; transform: scale(.85); }
+  .relic svg{ width:54px; height:54px; color: var(--cyan); filter: drop-shadow(0 0 6px rgba(0,230,255,.5)); }
+  .relic .name{ font-family:'Space Mono', monospace; font-size:12.5px; text-align:center; color: var(--ink); }
+  .arrow-fold{ color: var(--lime); font-family:'Archivo Black', sans-serif; font-size:22px; padding-bottom:24px; opacity:0; }
+
+  .barrier-note{
+    margin-top:28px; font-family:'Space Mono', monospace; font-size:12.5px;
+    color: var(--dim); max-width:52ch; text-align:center;
+    border-top: 1px dashed var(--glass-b); padding-top:16px; opacity:0;
+  }
+  .closing{ font-family:'Inter', sans-serif; font-weight:600; font-size: clamp(15px, 1.8vw, 21px); color: var(--dim); margin-top:22px; text-align:center; max-width:40ch; opacity:0; }
+
+  .hint{
+    position:absolute; bottom:104px;
+    font-family:'Space Mono', monospace; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase;
+    color: var(--dim); display:flex; align-items:center; gap:8px; opacity:0;
+  }
+  .hint svg{ width:12px; height:12px; animation: nudge 1.4s ease-in-out infinite; color: var(--lime); }
+  @keyframes nudge{ 0%,100%{ transform:translateX(0);} 50%{ transform:translateX(6px);} }
+
+  .navbar{ position:fixed; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:center; gap:26px; padding:24px 0 28px 0; z-index:20; }
+  .dots{ display:flex; gap:10px; }
+  .dot{ width:9px; height:9px; border-radius:50%; background: var(--glass-b); border:none; cursor:pointer; padding:0; transition: background .25s, transform .25s, box-shadow .25s; }
+  .dot:hover{ transform:scale(1.25); }
+  .dot.active{ background: var(--pink); transform:scale(1.35); box-shadow:0 0 10px rgba(255,46,154,.8); }
+  .dot:focus-visible{ outline:2px solid var(--cyan); outline-offset:3px; }
+
+  .arrows{ display:flex; gap:10px; position:fixed; right:40px; bottom:26px; z-index:20; }
+  .navbtn{
+    width:44px; height:44px; border-radius:50%;
+    border:1px solid var(--glass-b); background: var(--glass); color: var(--ink);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition: border-color .2s, transform .15s, box-shadow .2s;
+  }
+  .navbtn:hover{ border-color: var(--pink); box-shadow: 0 0 16px rgba(255,46,154,.4); }
+  .navbtn:active{ transform: scale(0.9); }
+  .navbtn:focus-visible{ outline:2px solid var(--cyan); outline-offset:2px; }
+  .navbtn[disabled]{ opacity:.3; cursor:default; }
+  .navbtn svg{ width:16px; height:16px; }
+
+  .wipe{
+    position:fixed; inset:-10% -10%; z-index:50; pointer-events:none; opacity:0;
+    background: linear-gradient(100deg, transparent 0%, var(--pink) 38%, var(--cyan) 58%, transparent 78%);
+    transform: translateX(-130%) skewX(-12deg);
+  }
+  .wipe.play{ animation: wipeMove .42s cubic-bezier(.7,0,.2,1); }
+  @keyframes wipeMove{
+    0%{ transform: translateX(-130%) skewX(-12deg); opacity:1; }
+    55%{ opacity:1; }
+    100%{ transform: translateX(130%) skewX(-12deg); opacity:0; }
+  }
+
+  @media (max-width: 720px){
+    .topbar{ padding:18px 20px; }
+    .slide{ padding: 96px 6vw 130px 6vw; }
+    .cards{ gap:16px; }
+    .card{ width:44vw; padding:18px 16px; }
+    .replaced-row{ gap:20px; }
+    .relic{ width:96px; }
+    .arrows{ right:20px; bottom:96px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .slide{ transition:none; }
+    .blob{ animation:none; }
+    .hint svg{ animation:none; }
+    .wipe{ display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="blob blob3"></div>
+  <div class="grain"></div>
+  <div class="wipe" id="wipe"></div>
+
+  <header class="topbar">
+    <span class="kicker" id="kicker">TECH TRENDS · GROUP TALK</span>
+    <span class="topbar-right">
+      <span class="pageno" id="pageno">01 / 07</span>
+      <button class="fs-btn" id="fsBtn" aria-label="Toggle fullscreen" title="Fullscreen (F)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+    </span>
+  </header>
+
+  <div class="stage" id="stage">
+
+    <!-- SLIDE 1 -->
+    <section class="slide active" data-kicker="TECH TRENDS · GROUP TALK">
+      <h1><span class="word">SMARTPHONES</span> <span class="word">HIT</span> <span class="word">A</span> <span class="word">WALL</span></h1>
+      <p class="sub">Here's the proof they've plateaued — and what's already climbing next.</p>
+      <div class="figure-wrap">
+        <svg viewBox="0 0 800 260" aria-hidden="true">
+          <line class="axis" x1="50" y1="230" x2="770" y2="230"></line>
+          <line class="axis" x1="50" y1="230" x2="50" y2="30"></line>
+          <path id="coverCurve" class="curve-path now" d="M60,210 C 200,210 240,90 400,72 C 500,60 560,48 610,40 C 660,34 700,44 740,88"></path>
+        </svg>
+      </div>
+      <div class="hint">
+        <span>press</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <span>to begin</span>
+      </div>
+    </section>
+
+    <!-- SLIDE 2 -->
+    <section class="slide" data-kicker="FIG. 1 · THE FRAMEWORK">
+      <h1><span class="word">EVERY</span> <span class="word">TECH</span> <span class="word">FOLLOWS</span> <span class="word">THIS</span> <span class="word">CURVE</span></h1>
+      <p class="sub">Introduction, growth, maturity, decline — same shape, every single time.</p>
+      <div class="figure-wrap">
+        <svg viewBox="0 0 800 300" aria-hidden="true">
+          <line class="axis" x1="50" y1="260" x2="770" y2="260"></line>
+          <line class="axis" x1="50" y1="260" x2="50" y2="30"></line>
+          <path id="conceptCurve" class="curve-path now" d="M60,240 C 200,240 240,120 400,100 C 500,88 560,76 610,68 C 660,62 700,72 740,116"></path>
+          <g id="stageMarkers"></g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- SLIDE 3 -->
+    <section class="slide" data-kicker="FIG. 1A · WHERE THEY SIT">
+      <h1><span class="word">SMARTPHONES</span> <span class="word">=</span> <span class="word">MATURITY</span></h1>
+      <p class="sub">Sales flattened into <mark>replacement-driven</mark> growth — the classic sign of a plateaued tech.</p>
+      <div class="figure-wrap">
+        <svg viewBox="0 0 800 300" aria-hidden="true">
+          <line class="axis" x1="50" y1="260" x2="770" y2="260"></line>
+          <line class="axis" x1="50" y1="260" x2="50" y2="30"></line>
+          <path id="maturityCurve" class="curve-path now" d="M60,240 C 200,240 240,120 400,100 C 500,88 560,76 610,68 C 660,62 700,72 740,116"></path>
+          <g id="maturityPin"></g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- SLIDE 4 -->
+    <section class="slide" data-kicker="FIG. 2 · THE RECEIPTS">
+      <h1><span class="word">THE</span> <span class="word">PROOF</span></h1>
+      <p class="sub">Global shipment data, 2025 — growing in value, not volume.</p>
+      <div class="cards">
+        <div class="card"><div class="stat">2%</div><div class="label">YoY growth in 2025 — highest since 2021</div></div>
+        <div class="card"><div class="stat">1.25B</div><div class="label">Units shipped worldwide in 2025</div></div>
+        <div class="card"><div class="stat">Value&nbsp;&gt;&nbsp;Volume</div><div class="label">Foldables &amp; cameras drive revenue, not new users</div></div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5 -->
+    <section class="slide" data-kicker="FIG. 3 · BEFORE THE SMARTPHONE">
+      <h1><span class="word">WHAT</span> <span class="word">THEY</span> <span class="word">REPLACED</span></h1>
+      <p class="sub">One device absorbed calling, computing and photography into a single curve.</p>
+      <div class="replaced-row">
+        <div class="relic"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="14" y="6" width="20" height="36" rx="3"/><line x1="18" y1="12" x2="30" y2="12"/><circle cx="24" cy="36" r="1.6" fill="currentColor"/></svg><span class="name">Feature phones</span></div>
+        <span class="arrow-fold">→</span>
+        <div class="relic"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="12" y="8" width="24" height="32" rx="3"/><line x1="17" y1="14" x2="31" y2="14"/><line x1="17" y1="20" x2="31" y2="20"/><line x1="17" y1="26" x2="24" y2="26"/></svg><span class="name">PDAs</span></div>
+        <span class="arrow-fold">→</span>
+        <div class="relic"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="14" width="32" height="22" rx="3"/><circle cx="24" cy="25" r="7"/><rect x="18" y="9" width="8" height="6" rx="1"/></svg><span class="name">Point-and-shoot cameras</span></div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6 -->
+    <section class="slide" data-kicker="FIG. 4 · NEXT UP">
+      <h1><span class="word">NEXT</span> <span class="word">UP:</span> <span class="word">AR</span> <span class="word">GLASSES</span></h1>
+      <p class="sub">Info moves off the screen and into view — early hardware, same shape of climb.</p>
+      <div class="figure-wrap">
+        <svg viewBox="0 0 800 300" aria-hidden="true">
+          <line class="axis" x1="50" y1="260" x2="770" y2="260"></line>
+          <line class="axis" x1="50" y1="260" x2="50" y2="30"></line>
+          <path class="curve-path now" opacity="0.3" d="M60,240 C 200,240 240,120 400,100 C 500,88 560,76 610,68 C 660,62 700,72 740,116"></path>
+          <path id="nextCurve" class="curve-path next" d="M120,246 C 220,246 260,220 340,206 C 420,192 470,182 520,176"></path>
+          <g id="nextPin"></g>
+        </svg>
+      </div>
+      <p class="barrier-note">Still early — battery life, price and social norms are the current friction points, same as smartphones once faced.</p>
+    </section>
+
+    <!-- SLIDE 7 -->
+    <section class="slide" data-kicker="FIG. 5 · CURTAIN CALL">
+      <h1><span class="word">EVERY</span> <span class="word">CURVE</span> <span class="word">GETS</span> <span class="word">A</span> <span class="word">SEQUEL</span></h1>
+      <div class="figure-wrap">
+        <svg viewBox="0 0 800 300" aria-hidden="true">
+          <line class="axis" x1="50" y1="260" x2="770" y2="260"></line>
+          <line class="axis" x1="50" y1="260" x2="50" y2="30"></line>
+          <path id="finalNow" class="curve-path now" d="M60,240 C 200,240 240,120 400,100 C 500,88 560,76 610,68 C 660,62 700,72 740,116"></path>
+          <path id="finalNext" class="curve-path next" d="M420,250 C 500,250 540,224 590,210 C 640,196 680,188 730,182"></path>
+        </svg>
+      </div>
+      <p class="closing">Smartphones aren't disappearing — they're just further along the page than whatever comes next.</p>
+    </section>
+
+  </div>
+
+  <nav class="navbar"><div class="dots" id="dots"></div></nav>
+  <div class="arrows">
+    <button class="navbtn" id="prevBtn" aria-label="Previous slide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <button class="navbtn" id="nextBtn" aria-label="Next slide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var index = 0;
+  var drawn = {};
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var dotsWrap = document.getElementById('dots');
+  slides.forEach(function(_, i){
+    var b = document.createElement('button');
+    b.className = 'dot' + (i === 0 ? ' active' : '');
+    b.setAttribute('aria-label', 'Go to slide ' + (i+1));
+    b.addEventListener('click', function(){ goTo(i); });
+    dotsWrap.appendChild(b);
+  });
+  var dots = Array.prototype.slice.call(dotsWrap.children);
+
+  var kickerEl = document.getElementById('kicker');
+  var pagenoEl = document.getElementById('pageno');
+  var prevBtn = document.getElementById('prevBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  var wipeEl = document.getElementById('wipe');
+
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+
+  function svgNS(tag){ return document.createElementNS('http://www.w3.org/2000/svg', tag); }
+  function pointAt(path, t){ var len = path.getTotalLength(); return path.getPointAtLength(len * t); }
+
+  function drawPath(path, duration){
+    if (!path || drawn[path.id]) return;
+    drawn[path.id] = true;
+    var len = path.getTotalLength();
+    if (reduceMotion){ return; }
+    path.style.strokeDasharray = len;
+    path.style.strokeDashoffset = len;
+    path.getBoundingClientRect();
+    path.style.transition = 'stroke-dashoffset ' + (duration||750) + 'ms cubic-bezier(.16,1,.3,1)';
+    requestAnimationFrame(function(){ path.style.strokeDashoffset = '0'; });
+  }
+
+  function buildStageMarkers(){
+    var path = document.getElementById('conceptCurve');
+    var group = document.getElementById('stageMarkers');
+    if (!path || !group || group.childElementCount) return;
+    var stages = [
+      {t:0.08, label:'Introduction', dy:-16},
+      {t:0.38, label:'Growth', dy:-16},
+      {t:0.66, label:'Maturity', dy:-16},
+      {t:0.95, label:'Decline', dy:22}
+    ];
+    stages.forEach(function(s, i){
+      var p = pointAt(path, s.t);
+      var dot = svgNS('circle');
+      dot.setAttribute('cx', p.x); dot.setAttribute('cy', p.y); dot.setAttribute('r', 6);
+      dot.setAttribute('class', 'stage-dot now');
+      dot.style.opacity = 0;
+      group.appendChild(dot);
+      var text = svgNS('text');
+      text.setAttribute('x', p.x); text.setAttribute('y', p.y + s.dy);
+      text.setAttribute('class', 'stage-label');
+      text.textContent = s.label;
+      text.style.opacity = 0;
+      group.appendChild(text);
+      if (!reduceMotion){
+        dot.animate([{opacity:0, transform:'scale(.3)'},{opacity:1, transform:'scale(1)'}], {duration:380, delay: 750 + i*120, easing:'cubic-bezier(.2,.8,.2,1.3)', fill:'forwards'});
+        text.animate([{opacity:0, transform:'translateY(6px)'},{opacity:1, transform:'translateY(0)'}], {duration:380, delay: 750 + i*120, easing:'ease-out', fill:'forwards'});
+      } else { dot.style.opacity = 1; text.style.opacity = 1; }
+    });
+  }
+
+  function buildPin(pathId, groupId, t, label, color){
+    var path = document.getElementById(pathId);
+    var group = document.getElementById(groupId);
+    if (!path || !group || group.childElementCount) return;
+    var p = pointAt(path, t);
+    var ring = svgNS('circle');
+    ring.setAttribute('cx', p.x); ring.setAttribute('cy', p.y); ring.setAttribute('r', 10);
+    ring.setAttribute('class', 'pin');
+    ring.style.stroke = color;
+    ring.style.opacity = 0;
+    group.appendChild(ring);
+    var dot = svgNS('circle');
+    dot.setAttribute('cx', p.x); dot.setAttribute('cy', p.y); dot.setAttribute('r', 4);
+    dot.setAttribute('fill', color);
+    dot.style.opacity = 0;
+    group.appendChild(dot);
+    var text = svgNS('text');
+    text.setAttribute('x', p.x + 16); text.setAttribute('y', p.y - 6);
+    text.setAttribute('class', 'pin-label');
+    text.textContent = label;
+    text.style.opacity = 0;
+    group.appendChild(text);
+    if (!reduceMotion){
+      [ring, dot, text].forEach(function(el, i){
+        el.animate([{opacity:0, transform:'scale(.4)'},{opacity:1, transform:'scale(1.15)'},{opacity:1, transform:'scale(1)'}], {duration:420, delay: 650 + i*70, easing:'cubic-bezier(.2,.8,.2,1.3)', fill:'forwards'});
+      });
+    } else { ring.style.opacity=1; dot.style.opacity=1; text.style.opacity=1; }
+  }
+
+  function popIn(el, delay, dur){
+    if (!el) return;
+    if (reduceMotion){ el.style.opacity = 1; return; }
+    el.animate(
+      [{opacity:0, transform:'translateY(16px) scale(.85)'},{opacity:1, transform:'translateY(0) scale(1.04)'},{opacity:1, transform:'translateY(0) scale(1)'}],
+      {duration: dur||480, delay: delay||0, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards'}
+    );
+  }
+  function fadeIn(el, delay, dur){
+    if (!el) return;
+    if (reduceMotion){ el.style.opacity = 1; return; }
+    el.animate([{opacity:0, transform:'translateY(10px)'},{opacity:1, transform:'translateY(0)'}], {duration: dur||500, delay: delay||0, easing:'ease-out', fill:'forwards'});
+  }
+
+  function animateSlide(slide){
+    var words = slide.querySelectorAll('h1 .word');
+    words.forEach(function(w, i){ popIn(w, i*70, 460); });
+    var kicker = kickerEl;
+    fadeIn(kicker, 0, 380);
+    fadeIn(slide.querySelector('.sub'), words.length*70 + 120, 480);
+    fadeIn(slide.querySelector('.figure-wrap'), words.length*70 + 60, 500);
+    fadeIn(slide.querySelector('.closing'), words.length*70 + 500, 480);
+    fadeIn(slide.querySelector('.barrier-note'), words.length*70 + 900, 480);
+    fadeIn(slide.querySelector('.hint'), 900, 500);
+
+    var cards = slide.querySelectorAll('.card');
+    cards.forEach(function(c, i){ popIn(c, words.length*70 + 150 + i*110, 480); });
+
+    var relics = slide.querySelectorAll('.relic');
+    relics.forEach(function(r, i){ popIn(r, words.length*70 + 150 + i*140, 460); });
+    var arrows = slide.querySelectorAll('.arrow-fold');
+    arrows.forEach(function(a, i){ fadeIn(a, words.length*70 + 260 + i*140, 360); });
+
+    // curve draws
+    ['coverCurve','conceptCurve','maturityCurve','nextCurve','finalNow','finalNext'].forEach(function(id){
+      var p = slide.querySelector('#'+id);
+      if (p) setTimeout(function(){ drawPath(p, 800); }, words.length*70 + 100);
+    });
+    if (slide.querySelector('#conceptCurve')) setTimeout(buildStageMarkers, words.length*70 + 200);
+    if (slide.querySelector('#maturityCurve')) setTimeout(function(){ buildPin('maturityCurve','maturityPin',0.66,'smartphones — you are here','#FF2E9A'); }, words.length*70 + 200);
+    if (slide.querySelector('#nextCurve')) setTimeout(function(){ buildPin('nextCurve','nextPin',0.06,'early stage','#00E6FF'); }, words.length*70 + 200);
+  }
+
+  function render(){
+    slides.forEach(function(s, i){ s.classList.toggle('active', i === index); });
+    kickerEl.textContent = slides[index].getAttribute('data-kicker') || '';
+    pagenoEl.textContent = pad(index+1) + ' / ' + pad(total);
+    dots.forEach(function(d, i){ d.classList.toggle('active', i === index); });
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === total - 1;
+    animateSlide(slides[index]);
+  }
+
+  function playWipe(){
+    if (reduceMotion) return;
+    wipeEl.classList.remove('play');
+    void wipeEl.offsetWidth;
+    wipeEl.classList.add('play');
+  }
+
+  var animating = false;
+  function goTo(i){
+    var target = Math.max(0, Math.min(total - 1, i));
+    if (target === index || animating) return;
+    animating = true;
+    playWipe();
+    setTimeout(function(){
+      index = target;
+      render();
+      animating = false;
+    }, reduceMotion ? 0 : 170);
+  }
+  function next(){ goTo(index + 1); }
+  function prev(){ goTo(index - 1); }
+
+  prevBtn.addEventListener('click', prev);
+  nextBtn.addEventListener('click', next);
+
+  window.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown'){ e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp'){ e.preventDefault(); prev(); }
+    else if (e.key === 'f' || e.key === 'F'){ toggleFullscreen(); }
+    else if (e.key === 'Home'){ goTo(0); }
+    else if (e.key === 'End'){ goTo(total-1); }
+  });
+
+  var touchX = null;
+  window.addEventListener('touchstart', function(e){ touchX = e.changedTouches[0].clientX; }, {passive:true});
+  window.addEventListener('touchend', function(e){
+    if (touchX === null) return;
+    var dx = e.changedTouches[0].clientX - touchX;
+    if (dx < -50) next(); else if (dx > 50) prev();
+    touchX = null;
+  }, {passive:true});
+
+  function toggleFullscreen(){
+    if (!document.fullscreenElement){ document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
+    else { document.exitFullscreen && document.exitFullscreen(); }
+  }
+  document.getElementById('fsBtn').addEventListener('click', toggleFullscreen);
+
+  render();
+})();
+</script>
+</body>
+</html>
